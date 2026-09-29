@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Iberpix → Earth Pro</title>
+<style>
+  :root{
+    --paper:#EBEDE6;
+    --surface-1:#F8F9F5; --surface-2:#ffffff;
+    --ink:#1D231F; --muted:#666E66; --faint:#9AA098;
+    --line:#D6D9CF; --accent:#4B6746; --accent-ink:#3A5236;
+    --warn:#9A5B2E; --warn-bg:#F6ECE0; --danger:#8A3B33;
+    --radius:14px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    background:var(--paper); color:var(--ink);
+    font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    line-height:1.5; -webkit-font-smoothing:antialiased;
+    padding:48px 20px 64px;
+  }
+  .wrap{max-width:620px;margin:0 auto}
+  header{margin-bottom:28px}
+  h1{
+    font-size:26px;line-height:1.15;margin:0 0 8px;
+    letter-spacing:-0.02em;font-weight:650;
+  }
+  h1 .arrow{color:var(--accent);font-weight:500;padding:0 2px}
+  .lede{margin:0;color:var(--muted);font-size:15.5px;max-width:52ch}
+
+  /* Drop zone — the one bold element */
+  .drop{
+    position:relative;margin-top:26px;
+    border:1.5px dashed var(--line);border-radius:var(--radius);
+    background:var(--surface-1);
+    padding:38px 24px;text-align:center;cursor:pointer;
+    transition:border-color .15s ease,background .15s ease;
+  }
+  .drop:hover{border-color:var(--accent);background:#F4F6F0}
+  .drop.over{border-color:var(--accent);border-style:solid;background:#EFF3EA}
+  .drop .cross{width:34px;height:34px;margin:0 auto 12px;display:block;color:var(--accent);opacity:.85}
+  .drop b{display:block;font-size:16px;font-weight:600;margin-bottom:3px}
+  .drop span{color:var(--muted);font-size:14px}
+  .drop .hint{display:block;margin-top:12px;color:var(--faint);font-size:12.5px;line-height:1.45}
+  input[type=file]{display:none}
+
+  .files{margin-top:14px;display:flex;flex-direction:column;gap:6px}
+  .chip{
+    display:flex;align-items:center;gap:8px;font-size:13.5px;
+    padding:7px 11px;border:1px solid var(--line);border-radius:9px;background:var(--surface-2);
+  }
+  .chip .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);flex:none}
+  .chip .dot.miss{background:var(--faint)}
+  .chip .role{color:var(--muted)}
+  .chip .nm{color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+  .panel{
+    margin-top:22px;border:1px solid var(--line);border-radius:var(--radius);
+    background:var(--surface-2);overflow:hidden;
+  }
+  .panel h2{
+    font-size:12.5px;font-weight:600;color:var(--muted);
+    margin:0;padding:13px 18px;border-bottom:1px solid var(--line);
+  }
+  .box{padding:16px 18px}
+  .grid{
+    display:grid;grid-template-columns:1fr 1fr;gap:1px;
+    background:var(--line);border:1px solid var(--line);border-radius:10px;overflow:hidden;
+  }
+  .cell{background:var(--surface-2);padding:11px 13px}
+  .cell .k{font-size:11.5px;color:var(--muted);margin-bottom:2px}
+  .cell .v{font-size:15px;font-variant-numeric:tabular-nums;letter-spacing:-0.01em}
+  .meta{margin-top:12px;font-size:13px;color:var(--muted)}
+  .meta code{font-size:12.5px;color:var(--ink);background:var(--surface-1);padding:1px 5px;border-radius:5px}
+
+  .msg{margin-top:14px;font-size:13.5px;padding:10px 13px;border-radius:9px;display:none}
+  .msg.warn{display:block;background:var(--warn-bg);color:var(--warn);border:1px solid #E7D3BC}
+  .msg.err{display:block;background:#F6E3E0;color:var(--danger);border:1px solid #E7C4BF}
+
+  .actions{margin-top:20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  button.go{
+    font:inherit;font-weight:600;font-size:15px;color:#fff;background:var(--accent);
+    border:none;border-radius:10px;padding:12px 22px;cursor:pointer;
+    transition:background .15s ease;
+  }
+  button.go:hover{background:var(--accent-ink)}
+  button.go:disabled{background:var(--faint);cursor:not-allowed}
+  .actions .reset{font:inherit;font-size:13.5px;color:var(--muted);background:none;border:none;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+
+  .help{
+    margin-top:30px;padding-top:20px;border-top:1px solid var(--line);
+    color:var(--muted);font-size:13.5px;
+  }
+  .help p{margin:0 0 8px}
+  .help b{color:var(--ink);font-weight:600}
+  .privacy{margin-top:10px;color:var(--faint);font-size:12.5px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Iberpix <span class="arrow">→</span> Earth Pro</h1>
+    <p class="lede">Convierte la imagen georreferenciada de Iberpix en un KMZ que Google Earth Pro coloca solo, en su sitio exacto, sin ajustar nada a mano.</p>
+  </header>
+
+  <div class="drop" id="drop" tabindex="0" role="button" aria-label="Seleccionar archivos">
+    <svg class="cross" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+      <circle cx="12" cy="12" r="8.4"/><path d="M12 1.6v4M12 18.4v4M1.6 12h4M18.4 12h4"/>
+    </svg>
+    <b>Arrastra aquí el JPG y el JGW</b>
+    <span>o pulsa para seleccionar los dos archivos</span>
+    <span class="hint">Son los dos ficheros del ZIP que descarga Iberpix<br>(Imagen georreferenciada → Imagen pantalla). Descomprímelo antes.</span>
+  </div>
+  <input type="file" id="file" accept=".jpg,.jpeg,.png,.jgw,.wld,.jpgw,.pgw,.pngw,.jpw,image/*" multiple>
+
+  <div class="files" id="chips" style="display:none">
+    <div class="chip"><span class="dot miss" id="dotImg"></span><span class="role">Imagen</span><span class="nm" id="nmImg">— pendiente —</span></div>
+    <div class="chip"><span class="dot miss" id="dotWld"></span><span class="role">World file</span><span class="nm" id="nmWld">— pendiente —</span></div>
+  </div>
+
+  <div class="msg" id="msg"></div>
+
+  <div class="panel" id="panel" style="display:none">
+    <h2>Bordes calculados (WGS84, grados decimales)</h2>
+    <div class="box">
+      <div class="grid">
+        <div class="cell"><div class="k">Norte</div><div class="v" id="vN">—</div></div>
+        <div class="cell"><div class="k">Sur</div><div class="v" id="vS">—</div></div>
+        <div class="cell"><div class="k">Oeste</div><div class="v" id="vW">—</div></div>
+        <div class="cell"><div class="k">Este</div><div class="v" id="vE">—</div></div>
+      </div>
+      <div class="meta">Imagen <code id="mDim">—</code> · píxel <code id="mPx">—</code></div>
+    </div>
+  </div>
+
+  <div class="actions" id="actions" style="display:none">
+    <button class="go" id="go">Descargar KMZ</button>
+    <button class="reset" id="reset">Empezar de nuevo</button>
+  </div>
+
+  <div class="help">
+    <p>En Earth Pro: <b>Archivo → Abrir</b> y elige el KMZ. Aparece como una capa que enciendes y apagas; la opacidad se regula con el deslizador de la superposición.</p>
+    <p>Pensado para infrarrojo, pero sirve para cualquier vista de Iberpix.</p>
+    <p class="privacy">Todo el cálculo ocurre en tu navegador. Ningún archivo se sube a internet, así que funciona sin conexión.</p>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  const R = 6378137.0; // radio Web Mercator (EPSG:3857)
+  const toDeg = r => r * 180 / Math.PI;
+  const merc2lon = x => toDeg(x / R);
+  const merc2lat = y => toDeg(2 * Math.atan(Math.exp(y / R)) - Math.PI/2);
+
+  const $ = id => document.getElementById(id);
+  const drop=$("drop"), fileInput=$("file"), msg=$("msg");
+  const chips=$("chips"), panel=$("panel"), actions=$("actions");
+
+  let state = { imgFile:null, imgBytes:null, W:0, H:0, wld:null, bounds:null };
+
+  const WLD_RE = /\.(jgw|wld|jpgw|pgw|pngw|jpw|tfw|tifw)$/i;
+  const IMG_RE = /\.(jpe?g|png)$/i;
+
+  function show(kind, text){ msg.className = "msg " + kind; msg.textContent = text; }
+  function clearMsg(){ msg.className = "msg"; msg.textContent = ""; }
+
+  function reset(){
+    state = { imgFile:null, imgBytes:null, W:0, H:0, wld:null, bounds:null };
+    fileInput.value = "";
+    chips.style.display="none"; panel.style.display="none"; actions.style.display="none";
+    $("dotImg").className="dot miss"; $("dotWld").className="dot miss";
+    $("nmImg").textContent="— pendiente —"; $("nmWld").textContent="— pendiente —";
+    clearMsg();
+  }
+  $("reset").addEventListener("click", reset);
+
+  drop.addEventListener("click", ()=>fileInput.click());
+  drop.addEventListener("keydown", e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); fileInput.click(); }});
+  ["dragenter","dragover"].forEach(ev=>drop.addEventListener(ev, e=>{e.preventDefault();drop.classList.add("over");}));
+  ["dragleave","drop"].forEach(ev=>drop.addEventListener(ev, e=>{e.preventDefault();drop.classList.remove("over");}));
+  drop.addEventListener("drop", e=>handleFiles(e.dataTransfer.files));
+  fileInput.addEventListener("change", e=>handleFiles(e.target.files));
+
+  function handleFiles(list){
+    clearMsg();
+    const files = Array.from(list);
+    let pending = 0;
+    files.forEach(f=>{
+      if (IMG_RE.test(f.name) || (f.type && f.type.startsWith("image/"))){
+        pending++;
+        readImage(f, ()=>{ if(--pending===0) recompute(); });
+      } else if (WLD_RE.test(f.name)){
+        pending++;
+        readWorld(f, ()=>{ if(--pending===0) recompute(); });
+      }
+    });
+    if (pending===0) show("err","No reconozco esos archivos. Necesito una imagen (.jpg o .png) y su world file (.jgw).");
+    chips.style.display="flex";
+    refreshChips();
+  }
+
+  function readImage(f, done){
+    const url = URL.createObjectURL(f);
+    const img = new Image();
+    img.onload = ()=>{
+      state.imgFile = f; state.W = img.naturalWidth; state.H = img.naturalHeight;
+      URL.revokeObjectURL(url);
+      f.arrayBuffer().then(buf=>{ state.imgBytes = new Uint8Array(buf); refreshChips(); done(); });
+    };
+    img.onerror = ()=>{ URL.revokeObjectURL(url); show("err","No pude leer la imagen."); done(); };
+    img.src = url;
+  }
+
+  function readWorld(f, done){
+    const rd = new FileReader();
+    rd.onload = ()=>{
+      const nums = String(rd.result).split(/\r?\n/).map(s=>s.trim()).filter(s=>s.length).map(Number);
+      if (nums.length < 6 || nums.slice(0,6).some(n=>!isFinite(n))){
+        show("err","El world file no tiene los seis valores esperados."); done(); return;
+      }
+      // A=paso x, D=rot, B=rot, E=paso y (neg), C=x centro píxel sup-izq, F=y centro píxel sup-izq
+      const [A,D,B,E,C,F] = nums;
+      state.wld = {A,D,B,E,C,F, name:f.name};
+      refreshChips(); done();
+    };
+    rd.onerror = ()=>{ show("err","No pude leer el world file."); done(); };
+    rd.readAsText(f);
+  }
+
+  function refreshChips(){
+    if (state.imgFile){ $("dotImg").className="dot"; $("nmImg").textContent=state.imgFile.name; }
+    if (state.wld){ $("dotWld").className="dot"; $("nmWld").textContent=state.wld.name; }
+  }
+
+  function recompute(){
+    if (!state.imgBytes || !state.wld || !state.W){ return; }
+    const {A,D,B,E,C,F} = state.wld, W=state.W, H=state.H;
+
+    if (Math.abs(B) > 1e-6 || Math.abs(D) > 1e-6){
+      show("warn","El world file indica rotación; el encaje asume la imagen orientada al norte (como la exporta Iberpix). Revisa el resultado.");
+    } else {
+      clearMsg();
+    }
+
+    // bordes del ráster en metros 3857 (centros de píxel ± medio píxel)
+    const xW = C - A/2;
+    const xE = xW + A*W;
+    const yN = F - E/2;      // E es negativo -> borde superior por encima de F
+    const yS = yN + E*H;
+
+    const bounds = {
+      north: merc2lat(yN), south: merc2lat(yS),
+      west:  merc2lon(xW), east:  merc2lon(xE)
+    };
+    state.bounds = bounds;
+
+    $("vN").textContent = bounds.north.toFixed(6);
+    $("vS").textContent = bounds.south.toFixed(6);
+    $("vW").textContent = bounds.west.toFixed(6);
+    $("vE").textContent = bounds.east.toFixed(6);
+    $("mDim").textContent = W + " × " + H + " px";
+    $("mPx").textContent = Math.abs(A).toFixed(3) + " m";
+    panel.style.display="block"; actions.style.display="flex";
+  }
+
+  // ---- KMZ (ZIP almacenado, sin dependencias) ----
+  const crcTable = (()=>{ const t=[]; for(let n=0;n<256;n++){ let c=n; for(let k=0;k<8;k++){ c = (c&1) ? (0xEDB88320 ^ (c>>>1)) : (c>>>1); } t[n]=c>>>0; } return t; })();
+  function crc32(u8){ let c=0xFFFFFFFF; for(let i=0;i<u8.length;i++){ c = crcTable[(c ^ u8[i]) & 0xFF] ^ (c>>>8); } return (c ^ 0xFFFFFFFF)>>>0; }
+
+  function makeKmz(files){ // [{name, data:Uint8Array}]
+    const enc = new TextEncoder();
+    const local=[], central=[]; let offset=0;
+    const DTIME=0, DDATE=0x21; // 1980-01-01
+    for (const f of files){
+      const nb = enc.encode(f.name), crc = crc32(f.data), sz = f.data.length;
+      const lh = new Uint8Array(30 + nb.length); const dv = new DataView(lh.buffer);
+      dv.setUint32(0,0x04034b50,true); dv.setUint16(4,20,true); dv.setUint16(6,0,true); dv.setUint16(8,0,true);
+      dv.setUint16(10,DTIME,true); dv.setUint16(12,DDATE,true); dv.setUint32(14,crc,true);
+      dv.setUint32(18,sz,true); dv.setUint32(22,sz,true); dv.setUint16(26,nb.length,true); dv.setUint16(28,0,true);
+      lh.set(nb,30); local.push(lh, f.data);
+      const cd = new Uint8Array(46 + nb.length); const cv = new DataView(cd.buffer);
+      cv.setUint32(0,0x02014b50,true); cv.setUint16(4,20,true); cv.setUint16(6,20,true); cv.setUint16(8,0,true);
+      cv.setUint16(10,0,true); cv.setUint16(12,DTIME,true); cv.setUint16(14,DDATE,true); cv.setUint32(16,crc,true);
+      cv.setUint32(20,sz,true); cv.setUint32(24,sz,true); cv.setUint16(28,nb.length,true); cv.setUint16(30,0,true);
+      cv.setUint16(32,0,true); cv.setUint16(34,0,true); cv.setUint16(36,0,true); cv.setUint32(38,0,true);
+      cv.setUint32(42,offset,true); cd.set(nb,46); central.push(cd);
+      offset += lh.length + sz;
+    }
+    const cSize = central.reduce((a,c)=>a+c.length,0), cOff = offset;
+    const eo = new Uint8Array(22); const ev = new DataView(eo.buffer);
+    ev.setUint32(0,0x06054b50,true); ev.setUint16(4,0,true); ev.setUint16(6,0,true);
+    ev.setUint16(8,files.length,true); ev.setUint16(10,files.length,true);
+    ev.setUint32(12,cSize,true); ev.setUint32(16,cOff,true); ev.setUint16(20,0,true);
+    return new Blob([...local, ...central, eo], {type:"application/vnd.google-earth.kmz"});
+  }
+
+  const esc = s => s.replace(/[<>&]/g, c=>({"<":"&lt;",">":"&gt;","&":"&amp;"}[c]));
+
+  $("go").addEventListener("click", ()=>{
+    if (!state.bounds) return;
+    const base = (state.imgFile.name.replace(/\.[^.]+$/,"")) || "iberpix";
+    const isPng = /\.png$/i.test(state.imgFile.name) || (state.imgFile.type||"").includes("png");
+    const imgName = "overlay." + (isPng ? "png" : "jpg");
+    const b = state.bounds;
+    const kml =
+`<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <Document>
+    <name>${esc(base)}</name>
+    <GroundOverlay>
+      <name>${esc(base)} — infrarrojo</name>
+      <color>ffffffff</color>
+      <Icon><href>${imgName}</href></Icon>
+      <LatLonBox>
+        <north>${b.north}</north>
+        <south>${b.south}</south>
+        <east>${b.east}</east>
+        <west>${b.west}</west>
+      </LatLonBox>
+    </GroundOverlay>
+  </Document>
+</kml>`;
+    const kmz = makeKmz([
+      { name:"doc.kml", data:new TextEncoder().encode(kml) },
+      { name:imgName,  data:state.imgBytes }
+    ]);
+    const url = URL.createObjectURL(kmz);
+    const a = document.createElement("a");
+    a.href = url; a.download = base + ".kmz";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 1500);
+  });
+})();
+</script>
+</body>
+</html>
